@@ -20,8 +20,9 @@ optional <- c("exclude_pca_corr"=TRUE,
               "method"="gcta",
               "out_file"="grm.RData",
               "sample_include_file"=NA,
-              "variant_include_file"=NA, 
-              'depth_filter' = NA)
+              "variant_include_file"=NA,
+              "info_filter" = NA,
+              "depth_filter" = NA)
 config <- setConfigDefaults(config, required, optional)
 print(config)
 
@@ -29,6 +30,7 @@ print(config)
 gdsfile <- config["gds_file"]
 outfile <- config["out_file"]
 varfile <- config["variant_include_file"]
+info_filter <- config['info_filter'] 
 depth_filter <- config['depth_filter']
 if (!is.na(chr)) {
     message("Running on chromosome ", chr)
@@ -57,6 +59,11 @@ if (!is.na(chr) && !bychrfile) {
     filterByChrom(gds, chr)
 }
 
+
+##if we want to set an info / imputation score filter
+if (!is.na(info_filter)){
+  filterByInfo(gds, info_filter)
+}
 
 ## if a minimum depth filter is set, keep only variants with depth > depth filter
 if (!is.na(depth_filter)){
