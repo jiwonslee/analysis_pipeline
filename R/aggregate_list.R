@@ -50,6 +50,14 @@ if (config["aggregate_type"] == "allele") {
 } else {
     stop("aggregrate_type must be 'allele' or 'position'")
 }
+###adding in row names as custom group_ids####
+labels <- c()
+for (i in 1:length(aggVarList)){
+  sub_group <- as.data.frame(aggVarList[i])
+  labels <- c(labels, as.character(sub_group$group_id[1]))
+  rm(sub_group)
+}
+names(aggVarList) <- labels
 
 save(aggVarList, file=outfile)
 message("Saved ", sum(sapply(aggVarList, nrow)), " variant alleles in ", length(aggVarList), " groups")
