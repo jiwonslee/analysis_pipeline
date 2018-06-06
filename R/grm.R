@@ -20,7 +20,8 @@ optional <- c("exclude_pca_corr"=TRUE,
               "method"="gcta",
               "out_file"="grm.RData",
               "sample_include_file"=NA,
-              "variant_include_file"=NA)
+              "variant_include_file"=NA, 
+              'depth_filter' = NA)
 config <- setConfigDefaults(config, required, optional)
 print(config)
 
@@ -28,6 +29,7 @@ print(config)
 gdsfile <- config["gds_file"]
 outfile <- config["out_file"]
 varfile <- config["variant_include_file"]
+depth_filter <- config['depth_filter']
 if (!is.na(chr)) {
     message("Running on chromosome ", chr)
     bychrfile <- grepl(" ", gdsfile) # do we have one file per chromosome?
@@ -53,6 +55,12 @@ if (!is.na(varfile)) {
 ## if we have a chromosome indicator but only one gds file, select chromosome
 if (!is.na(chr) && !bychrfile) {
     filterByChrom(gds, chr)
+}
+
+
+## if a minimum depth filter is set, keep only variants with depth > depth filter
+if (!is.na(depth_filter)){
+  filterByDepth(gds, depth_filter)
 }
 
 filterByPass(gds)
