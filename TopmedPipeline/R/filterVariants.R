@@ -54,6 +54,17 @@ filterByPass <- function(gds, verbose=TRUE) {
     seqSetFilter(gds, variant.sel=(filt == "PASS"), action="intersect", verbose=verbose)
 }
 
+#' @param min_depth Minimum depth to include
+#' @rdname filterVariants
+#'
+#' @import SeqArray
+#' @export
+filterByDepth <- function(gds, min_depth, verbose=TRUE) {
+  depth <- seqGetData(gds, "annotation/info/AVGDP")
+  seqSetFilter(gds, variant.sel=(depth > min_depth), action="intersect", verbose=verbose)
+}
+
+
 #' @param biallelic Logical for whether to select only biallelic SNVs
 #' @rdname filterVariants
 #'
