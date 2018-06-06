@@ -135,6 +135,7 @@ formatAssocSingle <- function(seqData, assoc) {
     
     seqSetFilter(seqData, variant.id=assoc$variantID, action="push+set", verbose=FALSE)
     assoc$pos <- seqGetData(seqData, "position")
+    assoc$snpid <- seqGetData(seqData, "annotation/id")
     if (!("chr" %in% names(assoc))) {
         assoc$chr <- seqGetData(seqData, "chromosome")
     }
@@ -148,7 +149,7 @@ formatAssocSingle <- function(seqData, assoc) {
     }
     seqSetFilter(seqData, action="pop", verbose=FALSE)
     
-    init.cols <- c("variantID", "chr", "pos", "n", "MAF", "minor.allele")
+    init.cols <- c("variantID", "chr", "pos", "snpid", "n", "MAF", "minor.allele")
     cols <- setdiff(names(assoc), c(init.cols, "freq"))
     assoc <- assoc[,c(init.cols, cols)]
 
