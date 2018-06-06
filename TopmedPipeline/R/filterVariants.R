@@ -64,6 +64,15 @@ filterByDepth <- function(gds, min_depth, verbose=TRUE) {
   seqSetFilter(gds, variant.sel=(depth > min_depth), action="intersect", verbose=verbose)
 }
 
+#' @param min_info Minimum info score to include
+#' @rdname filterVariants
+#'
+#' @import SeqArray
+#' @export
+filterByInfo <- function(gds, min_info, verbose=TRUE) {
+  r2 <- seqGetData(gds, "annotation/info/R2")
+  seqSetFilter(gds, variant.sel=(r2 > min_info), action="intersect", verbose=verbose)
+}
 
 #' @param biallelic Logical for whether to select only biallelic SNVs
 #' @rdname filterVariants
