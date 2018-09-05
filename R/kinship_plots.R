@@ -38,7 +38,13 @@ kin.type <- tolower(config["kinship_method"])
 kin.thresh <- as.numeric(config["kinship_threshold"])
 if (kin.type == "king") {
     king <- getobj(config["kinship_file"])
-    samp.sel <- king$sample.id %in% sample.id
+  ##added if else condition (originally no sample.sel <- king$sample.id)
+    if (!is.null(sample.id)){
+      samp.sel <- king$sample.id %in% sample.id
+    }
+    else{
+      samp.sel <- king$sample.id
+    }
     kinship <- snpgdsIBDSelection(king, kinship.cutoff=kin.thresh, samp.sel=samp.sel)
     xvar <- "IBS0"
 } else if (kin.type == "pcrelate") {
@@ -53,7 +59,6 @@ if (kin.type == "king") {
     stop("kinship method should be 'king' or 'pcrelate'")
 }
 message("Plotting ", kin.type, " kinship estimates")
-
 p <- ggplot(kinship, aes_string(xvar, "kinship")) +
     geom_hline(yintercept=2^(-seq(3,9,2)/2), linetype="dashed", color="grey") +
     geom_point(alpha=0.5) +
