@@ -126,6 +126,8 @@ getAssoc <- function(files, assoc_type) {
 #' @return data.frame including standard columns ("variantID", "chr", "pos", "n", "MAF", "minor.allele")
 #' 
 #' @import SeqArray
+#' @importFrom dplyr "%>%" mutate_ 
+#' @importFrom stringr str_split
 #' @export
 formatAssocSingle <- function(seqData, assoc) {
 
@@ -136,6 +138,8 @@ formatAssocSingle <- function(seqData, assoc) {
     seqSetFilter(seqData, variant.id=assoc$variantID, action="push+set", verbose=FALSE)
     assoc$pos <- seqGetData(seqData, "position")
     assoc$snpid <- seqGetData(seqData, "annotation/id")
+    assoc$alleles <- seqGetData(seqData, "allele") ##split by comma and add in ref alt later
+    assoc <- assoc %>% mutate_(effect.allele=as.character(lapply(str_split(freeze5b.alleles, ','), '[[', 2)))
     if (!("chr" %in% names(assoc))) {
         assoc$chr <- seqGetData(seqData, "chromosome")
     }
@@ -149,7 +153,7 @@ formatAssocSingle <- function(seqData, assoc) {
     }
     seqSetFilter(seqData, action="pop", verbose=FALSE)
     
-    init.cols <- c("variantID", "chr", "pos", "snpid", "n", "MAF", "minor.allele")
+    init.cols <- c("variantID", "chr", "pos", "snpid", "alleles", "n", "MAF", "minor.allele", "effect.allele")
     cols <- setdiff(names(assoc), c(init.cols, "freq"))
     assoc <- assoc[,c(init.cols, cols)]
 
@@ -176,3 +180,27 @@ omitKnownHits <- function(assoc, hits, flank=500) {
     ol <- findOverlaps(assoc.gr, hits.gr)
     assoc[-queryHits(ol),]
 }
+
+
+
+#' Add MAC column to association test output
+#'
+#' @param assoc results from \code{\link{assocTestSingle}} or \code{\link{assocTestAggregate}}
+#' @param assoc_type Type of association test ("single", "aggregate", "window")
+#' @return \code{assoc} with a "MAC" column added to the results data.frame
+#'
+#' @export
+addMAC <- function(assoc, assoc_type) {
+  mac <- function(x) {
+    round(2 * x$n * pmin(x$MAF, 1-x$MAF))
+  }
+  if (assoc_type == "single") {
+    assoc$MAC <- mac(assoc)
+  } else if (assoc_type %in% c("aggregate", "window")) {
+    assoc$results$MAC <- sapply(assoc$variantInfo, function(x) sum(mac(x)))
+  }
+  assoc
+}
+
+
+
