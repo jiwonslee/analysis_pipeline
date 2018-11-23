@@ -18,10 +18,18 @@ optional <- c("chromosomes"="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 
               "known_hits_file"=NA,
               "out_file_manh"="manhattan.png",
               "out_file_qq"="qq.png",
-              "thin"=TRUE)
+              "thin"=TRUE,
+              "output_file" = NA)
 config <- setConfigDefaults(config, required, optional)
 print(config)
-writeConfig(config, paste0(basename(argv$config), ".assoc_plots.params"))
+
+if (!is.na(config["output_file"])){
+  params_path = paste0(file.path(config["output_file"], "report", basename(argv$config)), ".assoc_plots.params")
+} else {
+  params_path = paste0(basename(argv$config), ".assoc_plots.params")
+}
+
+writeConfig(config, params_path)
 
 chr <- strsplit(config["chromosomes"], " ", fixed=TRUE)[[1]]
 files <- sapply(chr, function(c) insertChromString(config["assoc_file"], c, "assoc_file"))

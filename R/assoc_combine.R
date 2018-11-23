@@ -13,10 +13,16 @@ chr <- intToChr(argv$chromosome)
 
 required <- c("assoc_type",
               "out_prefix")
-optional <- c()
+optional <- c("output_file" = NA)
 config <- setConfigDefaults(config, required, optional)
 print(config)
-writeConfig(config, paste0(basename(argv$config), ".assoc_combine.params"))
+
+if (!is.na(config["output_file"])){
+  params_path = paste0(file.path(config["output_file"], "report", basename(argv$config)), ".assoc_combine.params")
+} else {
+  params_path = paste0(basename(argv$config), ".assoc_combine.params")
+}
+writeConfig(config, params_path)
 
 file.pattern <- paste0(basename(config["out_prefix"]), "_chr", chr, "_seg[[:digit:]]+.RData")
 files <- list.files(path=dirname(config["out_prefix"]), pattern=file.pattern, full.names=TRUE)
