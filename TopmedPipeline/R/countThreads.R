@@ -4,7 +4,7 @@
 #'
 #' @export
 countThreads <- function() {
-    nSlots <- Sys.getenv("NSLOTS")
+    nSlots <- Sys.getenv("LSB_DJOB_NUMPROC")
     nThreads <- ifelse(is.na(strtoi(nSlots) >= 1), 1, strtoi(nSlots))
     if (nThreads == 0) nThreads <- 1
     message(paste("Running with", nThreads,"thread(s)."))
