@@ -21,8 +21,8 @@ parser.add_argument("-c", "--chromosomes", default="1-22",
 #                    help="json file containing options to pass to the cluster")
 parser.add_argument("--verbose", action="store_true", default=False,
                     help="enable verbose output to help debug")
-#parser.add_argument("-n", "--ncores", default="1-8",
-#                    help="number of cores to use; either a number (e.g, 1) or a range of numbers (e.g., 1-4) [default %(default)s]")
+parser.add_argument("-n", "--ncores", default="2",
+                    help="number of cores to use (e.g., 1-4) [default %(default)s]")
 #parser.add_argument("-e", "--email", default=None,
 #                    help="email address for job reporting")
 #parser.add_argument("--print_only", action="store_true", default=False,
@@ -30,13 +30,14 @@ parser.add_argument("--verbose", action="store_true", default=False,
 #parser.add_argument("--version", action="version",
 #                    version="TopmedPipeline "+TopmedPipeline.__version__,
 #                    help="show the version number and exit")
+
 args = parser.parse_args()
 
 configfile = args.config_file
 chromosomes = args.chromosomes
 #cluster_file = args.cluster_file
 #cluster_type = args.cluster_type
-#ncores = args.ncores
+ncores = args.ncores
 #email = args.email
 #print_only = args.print_only
 verbose = args.verbose
@@ -65,15 +66,13 @@ config = deepcopy(configdict)
 config["out_file"] = configdict['output_file'] + '/data/' + configdict["data_prefix"] + "_grm_chr .gds"
 configfile = configdict['output_file'] + '/config/' + configdict["config_prefix"] + "_" + job + ".config"
 TopmedPipeline.writeConfig(config, configfile)
+log_prefix = configdict['output_file'] + '/log/' + configdict['config_prefix'] + '_' + job
 
 #jobid = cluster.submitJob(job_name=job, cmd=driver, args=["-c", rscript, configfile, version], request_cores=ncores, array_range=chromosomes, email=email, print_only=print_only)
 for chrom in chrom_list:
     if os.path.isfile(config["gds_file"].replace('chr ', 'chr' + chrom)) == True and os.path.isfile(config["out_file"].replace('chr ', 'chr'+ chrom)) == False:
-        cmd =  " ".join(['bsub -q big -R "rusage[mem=20000]" -n 4', #"-R 'rusage[mem=45000]'",
-#                 '-L /bin/bash',
-#                 'R -q --vanilla --args',
-#                 config_dir,'<'+rscript+'> /dev/null']
-                    'Rscript', rscript,  configfile, '--chromosome ' + chrom])
+        cmd =  " ".join(['bsub -q big', '-R "rusage[mem=30000]" -n', ncores, '-o', log_prefix + '_' + chrom + '.log',
+                    'Rscript', rscript,  configfile, '--chromosome ' + chrom]) ###do not change to big-multi; results in bus error
         print(cmd)
         os.system(cmd)
     elif os.path.isfile(config["gds_file"].replace('chr ', 'chr' + chrom)) == False:
@@ -90,6 +89,7 @@ config["in_file"] = configdict['output_file'] + '/data/' + configdict["data_pref
 config["out_file"] = configdict['output_file'] + '/data/' + configdict["data_prefix"] + "_grm.gds"
 configfile = configdict["config_prefix"] + "_" + job + ".config"
 TopmedPipeline.writeConfig(config, configfile)
+logname = configdict['output_file'] + '/log/' + configdict['config_prefix'] + '_' + job + '.log' 
 
 exit_flag = False
 if os.path.isfile(config["out_file"]) == True:
@@ -104,8 +104,9 @@ if exit_flag == True:
     print('Some chromosome files are not ready yet; run script again later to merge')
     exit()
 else:
-    cmd =  " ".join(['bsub -q big', 
+    cmd =  " ".join(['bsub -q big -R "rusage[mem=20000]"', '-o', logname,
                     'Rscript', rscript,  configfile])
+    print(cmd)
     os.system(cmd)
 #jobid = cluster.submitJob(job_name=job, cmd=driver, args=[rscript, configfile, version], holdid=[jobid], email=email, print_only=print_only)
 

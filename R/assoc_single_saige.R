@@ -2,8 +2,7 @@ library(argparser)
 library(TopmedPipeline)
 library(SeqVarTools)
 library(Biobase)
-library(GENESIS)
-library(dplyr)
+library(GENESIS.saige)
 sessionInfo()
 
 argp <- arg_parser("Association test - single variant")
@@ -25,8 +24,9 @@ optional <- c("mac_threshold"=5, # takes precedence
               "out_prefix"="assoc_single",
               "pass_only"=TRUE,
               "segment_file"=NA,
-              "test_type"="score",
+              "test_type"="SAIGE",
               "variant_include_file"=NA,
+              "variant_block_size"=1024,
               "output_file" = NA)
 config <- setConfigDefaults(config, required, optional)
 print(config)
@@ -43,19 +43,19 @@ writeConfig(config, params_path)
 gdsfile <- config["gds_file"]
 varfile <- config["variant_include_file"]
 if (!is.na(chr)) {
-    bychrfile <- grepl(" ", gdsfile) # do we have one file per chromosome?
-    gdsfile <- insertChromString(gdsfile, chr)
-    varfile <- insertChromString(varfile, chr)
+  bychrfile <- grepl(" ", gdsfile) # do we have one file per chromosome?
+  gdsfile <- insertChromString(gdsfile, chr)
+  varfile <- insertChromString(varfile, chr)
 }
 
 gds <- seqOpen(gdsfile)
-
 
 # get phenotypes
 annot <- getobj(config["phenotype_file"])
 
 # createSeqVarData object
 seqData <- SeqVarData(gds, sampleData=annot)
+
 # get null model
 nullModel <- getobj(config["null_model_file"])
 
@@ -89,31 +89,31 @@ if (!is.na(mac.min)) {
 }
 
 checkSelectedVariants(seqData)
-###change from 'variant.id' to 'annotation/id' results in subsequent error:
-#Error in getSnpIndex(data = genoData, snp.include, chromosome) :
-#  None of the SNPs in snp.include are in the provided data
-#Calls: assocTestMM -> getSnpIndex
-#Execution halted
-#variant.id <- seqGetData(gds, "variant.id")
-##variant.id <- seqGetData(gds, "annotation/id")
-#seqResetFilter(gds, verbose=FALSE)
 
+# create iterator
+block.size <- as.integer(config["variant_block_size"])
+iterator <- SeqVarBlockIterator(seqData, variantBlock=block.size)
 
+##unncessary for now since only SAIGE will use this script
+#test <- switch(tolower(config["test_type"]),
+#               score="Score",
+#               wald="Wald")
 
-test <- switch(tolower(config["test_type"]),
-               score="Score",
-               wald="Wald")
+assoc <- assocTestSingle(iterator, nullModel, test='SAIGE')
 
-assoc <- assocTestMM(seqData, nullModel, test=test)#, snp.include=variant.id)
+addMAC2 <- function(assoc, assoc_type) {
+  mac <- function(x) {
+    round(2 * x$n.obs * pmin(x$freq, 1-x$freq))
+  }
+  if (assoc_type == "single") {
+    assoc$MAC <- mac(assoc)
+  } else if (assoc_type %in% c("aggregate", "window")) {
+    assoc$results$MAC <- sapply(assoc$variantInfo, function(x) sum(mac(x)))
+  }
+  assoc
+}
 
-## make output consistent with aggregate tests
-message('formatting results...')
-assoc <- formatAssocSingle(seqData, assoc)
-assoc <- assoc %>% mutate(effect.allele=sapply(strsplit(alleles, ","), "[", 2))
-message('adding MAC...')
-#save(assoc, file=constructFilename(config["out_prefix"], chr, segment))
-assoc <- addMAC(assoc, "single")
-message('Saving results...')
+assoc <- addMAC2(assoc, "single")
 
 save(assoc, file=constructFilename(config["out_prefix"], chr, segment))
 

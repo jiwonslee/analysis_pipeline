@@ -29,7 +29,8 @@ optional <- c("gds_file"=NA, # required for conditional variants
               "rescale_variance"="marginal",
               "resid_covars"=TRUE,
               "sample_include_file"=NA,
-              "output_file" = NA)
+              "output_file" = NA,
+              "meta" = FALSE)
 config <- setConfigDefaults(config, required, optional)
 print(config)
 if (!is.na(config["output_file"])){
@@ -67,21 +68,16 @@ model.string <- modelString(outcome, covars, random, group.var)
 message("Model: ", model.string)
 message(length(sample.id), " samples")
 
-
-
-
 ###rewrite null model function so that rescaling is not done separately##
 if (!is.null(grm)) {
-  
   ## fit null model allowing heterogeneous variances among studies
   nullmod <- fitNullMM(annot, outcome=outcome, covars=covars,
                        covMatList=grm, scan.include=sample.id,
                        family=family, group.var=group.var)
-  
   ## if we need an inverse normal transform, take residuals and refit null model
   if (as.logical(config["inverse_normal"])) {
  #   if (is.null(group.var)) {
-      annot <- addInvNorm(annot, nullmod, outcome, covars)
+    annot <- addInvNorm(annot, nullmod, outcome, covars)
   #  } else {
    #   groups <- unique(annot[[group.var]])
     #  ## inverse-normal transform residuals from each study separately (mean=0, var=1)
@@ -104,6 +100,11 @@ if (!is.null(grm)) {
     # }
     # 
     ## fit null model again with these residuals as outcome and allowing heterogeneous variances
+    if (as.logical(config['meta'])){
+      message('meta=TRUE; rescaling rank normalized residuals by sd of residuals...')
+      scale <- sqrt(var(nullmod$resid.marginal))
+      annot$resid.norm <- annot$resid.norm*scale
+    }
     resid.covars <- if (config["resid_covars"]) covars else NULL
     nullmod <- fitNullMM(annot, outcome="resid.norm", covars=resid.covars,
                          covMatList=grm, scan.include=sample.id,

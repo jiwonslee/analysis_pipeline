@@ -126,8 +126,7 @@ getAssoc <- function(files, assoc_type) {
 #' @return data.frame including standard columns ("variantID", "chr", "pos", "n", "MAF", "minor.allele")
 #' 
 #' @import SeqArray
-#' @importFrom dplyr "%>%" mutate_ 
-#' @importFrom stringr str_split
+#' @importFrom dplyr "%>%" mutate_ mutate
 #' @export
 formatAssocSingle <- function(seqData, assoc) {
 
@@ -139,7 +138,7 @@ formatAssocSingle <- function(seqData, assoc) {
     assoc$pos <- seqGetData(seqData, "position")
     assoc$snpid <- seqGetData(seqData, "annotation/id")
     assoc$alleles <- seqGetData(seqData, "allele") ##split by comma and add in ref alt later
-    assoc <- assoc %>% mutate_(effect.allele=as.character(lapply(str_split(freeze5b.alleles, ','), '[[', 2)))
+    assoc <- assoc %>% mutate(effect.allele=sapply(strsplit(alleles, ","), "[", 2))
     if (!("chr" %in% names(assoc))) {
         assoc$chr <- seqGetData(seqData, "chromosome")
     }
